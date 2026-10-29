@@ -166,28 +166,34 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
           isDark ? 'border-[#26312a]' : 'border-[#e8ede9]'
         }`}
       >
-        {/* Quick presets */}
-        <div className="flex items-center gap-1.5">
-          <span className={`text-[11px] ${isDark ? 'text-[#708076]' : 'text-[#6d7e73]'}`}>
+        {/* Quick presets: +7 +14 +28 +56 +63 +91 +98 */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className={`text-[11px] font-medium ${isDark ? 'text-[#708076]' : 'text-[#6d7e73]'}`}>
             ลัด:
           </span>
-          {[
-            { label: 'เริ่มวันนี้', action: handleSetTodayStart },
-            { label: '+7 วัน', action: () => handleSetEndPlusDays(7) },
-            { label: '+14 วัน', action: () => handleSetEndPlusDays(14) },
-            { label: '+30 วัน', action: () => handleSetEndPlusDays(30) },
-          ].map((btn, idx) => (
+          <button
+            type="button"
+            onClick={handleSetTodayStart}
+            className={`px-2 py-0.5 rounded-md font-medium text-[11px] transition-colors whitespace-nowrap ${
+              isDark
+                ? 'bg-[#202924] hover:bg-[#2b3730] text-[#b4c3b9]'
+                : 'bg-[#edf2ee] hover:bg-[#e0e7e2] text-[#3c4c42]'
+            }`}
+          >
+            เริ่มวันนี้
+          </button>
+          {[7, 14, 28, 56, 63, 91, 98].map((days) => (
             <button
-              key={idx}
+              key={days}
               type="button"
-              onClick={btn.action}
-              className={`px-2 py-0.5 rounded-md font-medium text-[11px] transition-colors ${
+              onClick={() => handleSetEndPlusDays(days)}
+              className={`px-2 py-0.5 rounded-md font-medium font-mono-num text-[11px] transition-colors whitespace-nowrap ${
                 isDark
                   ? 'bg-[#202924] hover:bg-[#2b3730] text-[#b4c3b9]'
                   : 'bg-[#edf2ee] hover:bg-[#e0e7e2] text-[#3c4c42]'
               }`}
             >
-              {btn.label}
+              +{days} วัน
             </button>
           ))}
         </div>

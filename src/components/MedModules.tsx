@@ -410,20 +410,23 @@ export const MedModules: React.FC<MedModulesProps> = ({
                   <div className="space-y-1.5 text-xs">
                     <div className="flex items-center justify-between">
                       <span className="font-semibold opacity-90">2. เลือกวันที่กิน (จ. - อา.):</span>
-                      <div className="flex items-center gap-1 text-[11px]">
+                      <div className="flex flex-wrap items-center gap-1 text-[11px]">
                         {[
                           { label: 'ทุกวัน', days: [1, 2, 3, 4, 5, 6, 0] },
                           { label: 'จ-ศ', days: [1, 2, 3, 4, 5] },
                           { label: 'ส-อา', days: [6, 0] },
+                          { label: 'จพศ', days: [1, 3, 5] },
+                          { label: 'จ-พฤ', days: [1, 2, 3, 4] },
+                          { label: 'ศ-อา', days: [5, 6, 0] },
                         ].map((preset, pIdx) => (
                           <button
                             key={pIdx}
                             type="button"
                             onClick={() => selectPreset(preset.days)}
-                            className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors whitespace-nowrap ${
                               isDark
-                                ? 'bg-[#202924] text-[#a4b5aa] hover:bg-[#2b3730]'
-                                : 'bg-[#edf2ee] text-[#4d5d52] hover:bg-[#e0e7e2]'
+                                ? 'bg-[#202924] text-[#a4b5aa] hover:bg-[#2b3730] hover:text-white'
+                                : 'bg-[#edf2ee] text-[#4d5d52] hover:bg-[#e0e7e2] hover:text-[#1c2621]'
                             }`}
                           >
                             {preset.label}
