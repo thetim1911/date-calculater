@@ -1,0 +1,6 @@
+{
+  "name": "DateSpan - คำนวณระยะห่างระหว่างวันและสัปดาห์",
+  "description": "เว็บแอปคำนวณระยะห่างระหว่างวัน พร้อมระบบปักหมุดบันทึกรายการ และคำนวณจำนวนสัปดาห์แบบปัดเศษขึ้นเป็นจำนวนเต็ม",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
