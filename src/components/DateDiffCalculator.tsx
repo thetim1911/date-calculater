@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Bookmark, ArrowRightLeft, Copy, Check, Calendar, Info } from 'lucide-react';
-import { DateDiffResult, YearFormat } from '../types';
+import { Bookmark, ArrowRightLeft, Copy, Check, Info } from 'lucide-react';
+import { DateDiffResult, YearFormat, ThemeMode } from '../types';
 import { formatThaiDate, formatSlashDate, toInputDateString } from '../utils/dateCalc';
 
 interface DateDiffCalculatorProps {
@@ -12,6 +12,7 @@ interface DateDiffCalculatorProps {
   setIncludeEndDate: (include: boolean) => void;
   result: DateDiffResult | null;
   yearFormat: YearFormat;
+  theme: ThemeMode;
   onPin: (title: string) => void;
   isCurrentPairPinned: boolean;
 }
@@ -25,13 +26,15 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
   setIncludeEndDate,
   result,
   yearFormat,
+  theme,
   onPin,
   isCurrentPairPinned,
 }) => {
   const [pinTitle, setPinTitle] = useState('');
   const [copied, setCopied] = useState(false);
+  const isDark = theme === 'dark';
 
-  // Quick Preset Actions (minimal clicks)
+  // Quick Preset Actions
   const handleSetTodayStart = () => {
     setStartDate(toInputDateString(new Date()));
   };
@@ -69,17 +72,31 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 p-5 sm:p-6 shadow-xs space-y-4">
-      {/* Date Pickers (Stacked with central swap button for perfect 50% split width) */}
+    <div
+      className={`rounded-2xl border p-5 sm:p-6 shadow-2xs space-y-4 transition-colors ${
+        isDark
+          ? 'bg-[#181f1b] border-[#29352e] text-[#e3e8e5]'
+          : 'bg-[#ffffff] border-[#dde3df] text-[#1c2621]'
+      }`}
+    >
+      {/* Date Pickers */}
       <div className="space-y-2.5">
         {/* Start Date */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700 flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-blue-500 inline-block" />
+            <span
+              className={`font-semibold flex items-center gap-1.5 ${
+                isDark ? 'text-[#c2cfc7]' : 'text-[#38493f]'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-teal-500 inline-block" />
               วันเริ่มต้น
             </span>
-            <span className="text-slate-500 text-[11px]">
+            <span
+              className={`text-[11px] font-mono-num ${
+                isDark ? 'text-[#819388]' : 'text-[#627368]'
+              }`}
+            >
               {formatThaiDate(startDate, yearFormat, true)}
             </span>
           </div>
@@ -87,7 +104,11 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
             type="date"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 transition-colors"
+            className={`w-full px-3 py-2 text-sm font-medium rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${
+              isDark
+                ? 'bg-[#131714] border-[#2c3830] text-[#e6ece8]'
+                : 'bg-[#f6f8f6] border-[#d8e0db] text-[#1c2621] hover:bg-white focus:bg-white'
+            }`}
           />
         </div>
 
@@ -96,7 +117,11 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
           <button
             type="button"
             onClick={handleSwapDates}
-            className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition-colors shadow-2xs"
+            className={`p-1.5 rounded-lg border transition-colors shadow-2xs ${
+              isDark
+                ? 'bg-[#202924] border-[#313f36] text-[#a4b5aa] hover:text-white'
+                : 'bg-white border-[#d8e0db] text-[#55665b] hover:text-[#1c2621] hover:bg-[#f0f4f1]'
+            }`}
             title="สลับวันเริ่มต้น-สิ้นสุด"
           >
             <ArrowRightLeft className="w-3.5 h-3.5 rotate-90" />
@@ -106,11 +131,19 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
         {/* End Date */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs">
-            <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+            <span
+              className={`font-semibold flex items-center gap-1.5 ${
+                isDark ? 'text-[#c2cfc7]' : 'text-[#38493f]'
+              }`}
+            >
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
               วันสิ้นสุด
             </span>
-            <span className="text-slate-500 text-[11px]">
+            <span
+              className={`text-[11px] font-mono-num ${
+                isDark ? 'text-[#819388]' : 'text-[#627368]'
+              }`}
+            >
               {formatThaiDate(endDate, yearFormat, true)}
             </span>
           </div>
@@ -118,91 +151,144 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className="w-full px-3 py-2.5 text-sm font-medium rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900 transition-colors"
+            className={`w-full px-3 py-2 text-sm font-medium rounded-xl border focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition-colors ${
+              isDark
+                ? 'bg-[#131714] border-[#2c3830] text-[#e6ece8]'
+                : 'bg-[#f6f8f6] border-[#d8e0db] text-[#1c2621] hover:bg-white focus:bg-white'
+            }`}
           />
         </div>
       </div>
 
-      {/* Quick shortcuts & Include End Date toggle in single line */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+      {/* Quick shortcuts & Include End Date toggle */}
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2 pt-2 border-t text-xs ${
+          isDark ? 'border-[#26312a]' : 'border-[#e8ede9]'
+        }`}
+      >
         {/* Quick presets */}
         <div className="flex items-center gap-1.5">
-          <span className="text-slate-400 text-[11px]">ปุ่มลัด:</span>
-          <button
-            type="button"
-            onClick={handleSetTodayStart}
-            className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px]"
-          >
-            เริ่มวันนี้
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSetEndPlusDays(7)}
-            className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px]"
-          >
-            +7 วัน
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSetEndPlusDays(14)}
-            className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px]"
-          >
-            +14 วัน
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSetEndPlusDays(30)}
-            className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-[11px]"
-          >
-            +30 วัน
-          </button>
+          <span className={`text-[11px] ${isDark ? 'text-[#708076]' : 'text-[#6d7e73]'}`}>
+            ลัด:
+          </span>
+          {[
+            { label: 'เริ่มวันนี้', action: handleSetTodayStart },
+            { label: '+7 วัน', action: () => handleSetEndPlusDays(7) },
+            { label: '+14 วัน', action: () => handleSetEndPlusDays(14) },
+            { label: '+30 วัน', action: () => handleSetEndPlusDays(30) },
+          ].map((btn, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={btn.action}
+              className={`px-2 py-0.5 rounded-md font-medium text-[11px] transition-colors ${
+                isDark
+                  ? 'bg-[#202924] hover:bg-[#2b3730] text-[#b4c3b9]'
+                  : 'bg-[#edf2ee] hover:bg-[#e0e7e2] text-[#3c4c42]'
+              }`}
+            >
+              {btn.label}
+            </button>
+          ))}
         </div>
 
         {/* Include End Date Checkbox */}
-        <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-slate-600">
+        <label
+          className={`inline-flex items-center gap-1.5 cursor-pointer select-none text-xs ${
+            isDark ? 'text-[#a2b3a8]' : 'text-[#47574d]'
+          }`}
+        >
           <input
             type="checkbox"
             checked={includeEndDate}
             onChange={(e) => setIncludeEndDate(e.target.checked)}
-            className="w-4 h-4 rounded text-amber-600 border-slate-300 focus:ring-amber-500"
+            className="w-4 h-4 rounded text-emerald-600 border-slate-300 focus:ring-emerald-500"
           />
-          <span className="font-medium text-slate-700 text-xs">นับรวมวันสิ้นสุด (+1 วัน)</span>
+          <span className="font-medium text-[11px]">นับรวมวันสิ้นสุด (+1 วัน)</span>
         </label>
       </div>
 
-      {/* PRIMARY RESULT CARDS: ORANGE COLOR ON "จำนวนวันรวม" */}
+      {/* PRIMARY RESULT CARDS: EYE-FRIENDLY MUTED ACCENTS */}
       {result && (
         <div className="space-y-3.5 pt-1">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* 1. Total Days (ORANGE THEME AS REQUESTED: "ขอสีส้มมาอยู่ตรงจำนวนวัน") */}
-            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-300/90 relative overflow-hidden">
-              <div className="text-xs font-semibold text-amber-900 mb-1">
+            {/* 1. Total Days (WARM OCHRE/AMBER - ANTI-GLARE) */}
+            <div
+              className={`p-4 rounded-xl border relative overflow-hidden transition-colors ${
+                isDark
+                  ? 'bg-[#261f17] border-[#4a3620] text-[#fcd34d]'
+                  : 'bg-[#fef8f0] border-[#fcd7b6] text-[#8e450b]'
+              }`}
+            >
+              <div
+                className={`text-xs font-semibold mb-1 ${
+                  isDark ? 'text-[#fbbf24]' : 'text-[#8e450b]'
+                }`}
+              >
                 จำนวนวันรวม
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl sm:text-4xl font-black text-amber-700 font-mono-num tracking-tight">
+                <span
+                  className={`text-3xl sm:text-4xl font-black font-mono-num tracking-tight ${
+                    isDark ? 'text-[#fef3c7]' : 'text-[#8c4309]'
+                  }`}
+                >
                   {result.totalDays}
                 </span>
-                <span className="text-lg font-bold text-amber-800">วัน</span>
+                <span
+                  className={`text-lg font-bold ${
+                    isDark ? 'text-[#fde68a]' : 'text-[#9e5012]'
+                  }`}
+                >
+                  วัน
+                </span>
               </div>
-              <div className="text-[11px] text-amber-900/80 mt-1">
+              <div
+                className={`text-[11px] mt-1 ${
+                  isDark ? 'text-[#d97706]' : 'text-[#a55616]'
+                }`}
+              >
                 ({result.fullWeeks} สัปดาห์ กับอีก {result.remainingDays} วัน)
               </div>
             </div>
 
-            {/* 2. Weeks Rounded Up (Neutral Card) */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/90 relative overflow-hidden">
-              <div className="text-xs font-semibold text-slate-600 mb-1">
+            {/* 2. Weeks Rounded Up (SOOTHING SAGE / SLATE) */}
+            <div
+              className={`p-4 rounded-xl border relative overflow-hidden transition-colors ${
+                isDark
+                  ? 'bg-[#1b231f] border-[#2e3d34] text-[#a7cfb7]'
+                  : 'bg-[#f2f6f3] border-[#d5ded8] text-[#283d31]'
+              }`}
+            >
+              <div
+                className={`text-xs font-semibold mb-1 ${
+                  isDark ? 'text-[#9fc7af]' : 'text-[#374e40]'
+                }`}
+              >
                 จำนวนสัปดาห์ (ปัดเศษขึ้น)
               </div>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl sm:text-4xl font-black text-slate-900 font-mono-num tracking-tight">
+                <span
+                  className={`text-3xl sm:text-4xl font-black font-mono-num tracking-tight ${
+                    isDark ? 'text-[#e6f2eb]' : 'text-[#1c2c22]'
+                  }`}
+                >
                   {result.roundedWeeks}
                 </span>
-                <span className="text-lg font-bold text-slate-700">สัปดาห์</span>
+                <span
+                  className={`text-lg font-bold ${
+                    isDark ? 'text-[#9fc7af]' : 'text-[#374e40]'
+                  }`}
+                >
+                  สัปดาห์
+                </span>
               </div>
-              <div className="text-[11px] text-slate-500 mt-1 flex items-center gap-1">
-                <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 inline" />
+              <div
+                className={`text-[11px] mt-1 flex items-center gap-1 ${
+                  isDark ? 'text-[#7e9988]' : 'text-[#586e61]'
+                }`}
+              >
+                <Info className="w-3.5 h-3.5 opacity-80 shrink-0 inline" />
                 <span>คำนวณจริง {result.exactWeeks} สัปดาห์ → ปัดขึ้นเต็ม</span>
               </div>
             </div>
@@ -211,7 +297,11 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
           {/* Frictionless Inline Pin Input */}
           <form
             onSubmit={handlePinSubmit}
-            className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/80 flex flex-col sm:flex-row items-center gap-2"
+            className={`p-2.5 rounded-xl border flex flex-col sm:flex-row items-center gap-2 transition-colors ${
+              isDark
+                ? 'bg-[#141a16] border-[#29352e]'
+                : 'bg-[#f5f8f6] border-[#dbe3de]'
+            }`}
           >
             <div className="relative flex-1 w-full">
               <input
@@ -219,17 +309,25 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
                 value={pinTitle}
                 onChange={(e) => setPinTitle(e.target.value)}
                 placeholder="ใส่ชื่อบันทึก เช่น สัญญาเช่า, ส่งโปรเจกต์ (หรือกดปักหมุดได้เลย)"
-                className="w-full px-3 py-2 text-xs bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 text-slate-900"
+                className={`w-full px-3 py-1.5 text-xs rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-colors ${
+                  isDark
+                    ? 'bg-[#1a211d] border-[#2c3830] text-[#e6ece8]'
+                    : 'bg-white border-[#d5ded8] text-[#1c2621]'
+                }`}
               />
             </div>
 
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
               <button
                 type="submit"
-                className={`flex-1 sm:flex-initial px-3.5 py-2 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap ${
+                className={`flex-1 sm:flex-initial px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap ${
                   isCurrentPairPinned
-                    ? 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                    ? isDark
+                      ? 'bg-[#3b301c] text-[#fde047]'
+                      : 'bg-[#fef3c7] text-[#92400e]'
+                    : isDark
+                    ? 'bg-[#27362e] text-[#bbf7d0] hover:bg-[#31443a]'
+                    : 'bg-[#293c31] text-[#e6f4ec] hover:bg-[#203027]'
                 }`}
                 title="ปักหมุดบันทึกไว้ในรายการ"
               >
@@ -240,7 +338,11 @@ export const DateDiffCalculator: React.FC<DateDiffCalculatorProps> = ({
               <button
                 type="button"
                 onClick={handleCopyResult}
-                className="p-2 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg transition-colors shrink-0"
+                className={`p-1.5 rounded-lg border transition-colors shrink-0 ${
+                  isDark
+                    ? 'bg-[#1e2722] border-[#2f3d35] text-[#b4c3b9] hover:text-white'
+                    : 'bg-white border-[#d5ded8] text-[#55665b] hover:text-[#1c2621]'
+                }`}
                 title="คัดลอกสรุป"
               >
                 {copied ? (

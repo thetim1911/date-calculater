@@ -1,4 +1,5 @@
 export type YearFormat = 'be' | 'ce'; // พ.ศ. or ค.ศ.
+export type ThemeMode = 'comfort' | 'dark'; // 'comfort' (สบายตานวลแสง) | 'dark' (มืดถนอมสายตา)
 
 export interface PinnedItem {
   id: string;

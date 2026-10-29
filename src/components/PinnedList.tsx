@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Bookmark, RotateCcw, Copy, Check, Trash2, ZoomIn, ZoomOut, Search, Rows, LayoutGrid } from 'lucide-react';
-import { PinnedItem, YearFormat } from '../types';
+import { PinnedItem, YearFormat, ThemeMode } from '../types';
 import { formatSlashDate } from '../utils/dateCalc';
 
 interface PinnedListProps {
@@ -8,6 +8,7 @@ interface PinnedListProps {
   onLoadItem: (item: PinnedItem) => void;
   onDeleteItem: (id: string) => void;
   yearFormat: YearFormat;
+  theme: ThemeMode;
   activeStartDate: string;
   activeEndDate: string;
 }
@@ -30,17 +31,16 @@ export const PinnedList: React.FC<PinnedListProps> = ({
   onLoadItem,
   onDeleteItem,
   yearFormat,
+  theme,
   activeStartDate,
   activeEndDate,
 }) => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  
-  // Density mode: 'compact' (slim single-row) or 'card'
   const [viewMode, setViewMode] = useState<'compact' | 'card'>('compact');
-  
-  // Zoom scale: 70% to 115%
   const [zoomLevel, setZoomLevel] = useState<number>(0.85);
+
+  const isDark = theme === 'dark';
 
   const handleZoomIn = () => {
     setZoomLevel((prev) => Math.min(1.15, Number((prev + 0.15).toFixed(2))));
@@ -68,15 +68,30 @@ export const PinnedList: React.FC<PinnedListProps> = ({
   );
 
   return (
-    <div id="pinned-section" className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col h-full">
-      {/* Header with Zoom In / Zoom Out and Density controls */}
-      <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100">
+    <div
+      id="pinned-section"
+      className={`rounded-2xl border p-4 sm:p-5 shadow-2xs flex flex-col h-full transition-colors ${
+        isDark
+          ? 'bg-[#181f1b] border-[#29352e] text-[#e3e8e5]'
+          : 'bg-[#ffffff] border-[#dde3df] text-[#1c2621]'
+      }`}
+    >
+      {/* Header with Zoom & View Mode */}
+      <div
+        className={`flex flex-wrap items-center justify-between gap-2 pb-3 border-b ${
+          isDark ? 'border-[#26312a]' : 'border-[#e8ede9]'
+        }`}
+      >
         <div className="flex items-center gap-2">
-          <Bookmark className="w-4 h-4 fill-amber-500 text-amber-600" />
-          <h2 className="text-sm sm:text-base font-bold text-slate-900 tracking-tight">
+          <Bookmark className="w-4 h-4 fill-amber-500/80 text-amber-500" />
+          <h2 className="text-sm sm:text-base font-bold tracking-tight">
             รายการที่ปักหมุด
           </h2>
-          <span className="text-[11px] font-mono-num font-semibold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded-full">
+          <span
+            className={`text-[11px] font-mono-num font-semibold px-1.5 py-0.2 rounded-full ${
+              isDark ? 'bg-[#242f28] text-[#a4b5aa]' : 'bg-[#eef3f0] text-[#4d5d52]'
+            }`}
+          >
             {pinnedItems.length}
           </span>
         </div>
@@ -84,39 +99,59 @@ export const PinnedList: React.FC<PinnedListProps> = ({
         {/* Zoom Controls & View Mode */}
         <div className="flex items-center gap-1.5">
           {/* Zoom In / Zoom Out */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs text-slate-600">
+          <div
+            className={`flex items-center rounded-lg border p-0.5 text-xs ${
+              isDark ? 'border-[#2c3830] bg-[#141a16]' : 'border-[#d8e0db] bg-[#f2f6f4]'
+            }`}
+          >
             <button
               type="button"
               onClick={handleZoomOut}
               disabled={zoomLevel <= 0.70}
-              className="p-1 rounded hover:bg-white hover:text-slate-900 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className={`p-1 rounded disabled:opacity-30 transition-colors ${
+                isDark ? 'hover:bg-[#202924] text-[#b4c3b9]' : 'hover:bg-white text-[#55665b]'
+              }`}
               title="ย่อขนาด (Zoom Out)"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="font-mono-num px-1.5 text-[10px] text-slate-500 font-medium select-none min-w-[34px] text-center">
+            <span
+              className={`font-mono-num px-1.5 text-[10px] font-medium select-none min-w-[34px] text-center ${
+                isDark ? 'text-[#819388]' : 'text-[#627368]'
+              }`}
+            >
               {Math.round(zoomLevel * 100)}%
             </span>
             <button
               type="button"
               onClick={handleZoomIn}
               disabled={zoomLevel >= 1.15}
-              className="p-1 rounded hover:bg-white hover:text-slate-900 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+              className={`p-1 rounded disabled:opacity-30 transition-colors ${
+                isDark ? 'hover:bg-[#202924] text-[#b4c3b9]' : 'hover:bg-white text-[#55665b]'
+              }`}
               title="ขยายขนาด (Zoom In)"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* View Mode Toggle: Compact vs Card */}
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+          {/* View Mode Toggle */}
+          <div
+            className={`flex items-center rounded-lg border p-0.5 text-xs ${
+              isDark ? 'border-[#2c3830] bg-[#141a16]' : 'border-[#d8e0db] bg-[#f2f6f4]'
+            }`}
+          >
             <button
               type="button"
               onClick={() => setViewMode('compact')}
               className={`p-1 rounded transition-colors ${
                 viewMode === 'compact'
-                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                  : 'text-slate-400 hover:text-slate-700'
+                  ? isDark
+                    ? 'bg-[#29352e] text-white shadow-2xs font-semibold'
+                    : 'bg-white text-[#1c2621] shadow-2xs font-semibold'
+                  : isDark
+                  ? 'text-[#6d7e74] hover:text-[#c2cfc7]'
+                  : 'text-[#84958a] hover:text-[#1c2621]'
               }`}
               title="มุมมองกะทัดรัด แถวเดี่ยว"
             >
@@ -127,8 +162,12 @@ export const PinnedList: React.FC<PinnedListProps> = ({
               onClick={() => setViewMode('card')}
               className={`p-1 rounded transition-colors ${
                 viewMode === 'card'
-                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                  : 'text-slate-400 hover:text-slate-700'
+                  ? isDark
+                    ? 'bg-[#29352e] text-white shadow-2xs font-semibold'
+                    : 'bg-white text-[#1c2621] shadow-2xs font-semibold'
+                  : isDark
+                  ? 'text-[#6d7e74] hover:text-[#c2cfc7]'
+                  : 'text-[#84958a] hover:text-[#1c2621]'
               }`}
               title="มุมมองการ์ด"
             >
@@ -138,7 +177,7 @@ export const PinnedList: React.FC<PinnedListProps> = ({
         </div>
       </div>
 
-      {/* Quick Search if more than 3 items */}
+      {/* Quick Search */}
       {pinnedItems.length > 3 && (
         <div className="pt-2.5 pb-1">
           <div className="relative">
@@ -148,7 +187,11 @@ export const PinnedList: React.FC<PinnedListProps> = ({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="ค้นหาชื่อรายการ หรือวันที่..."
-              className="w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-1 focus:ring-amber-500/30 text-slate-800"
+              className={`w-full pl-8 pr-2.5 py-1 text-xs rounded-lg border focus:outline-none focus:ring-1 focus:ring-emerald-500/30 transition-colors ${
+                isDark
+                  ? 'bg-[#141a16] border-[#29352e] text-[#e3e8e5]'
+                  : 'bg-[#f7f9f7] border-[#d8e0db] text-[#1c2621]'
+              }`}
             />
           </div>
         </div>
@@ -156,23 +199,33 @@ export const PinnedList: React.FC<PinnedListProps> = ({
 
       {/* List Container with Zoom Transform */}
       {filteredItems.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center py-8 px-4 text-center text-slate-400">
-          <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 mb-2">
-            <Bookmark className="w-4 h-4 text-slate-300" />
+        <div className="flex-1 flex flex-col items-center justify-center py-8 px-4 text-center">
+          <div
+            className={`w-9 h-9 rounded-xl flex items-center justify-center mb-2 ${
+              isDark ? 'bg-[#202924] text-[#819388]' : 'bg-[#edf2ee] text-[#718277]'
+            }`}
+          >
+            <Bookmark className="w-4 h-4 opacity-60" />
           </div>
-          <p className="text-xs font-medium text-slate-600">
+          <p
+            className={`text-xs font-medium ${
+              isDark ? 'text-[#c2cfc7]' : 'text-[#38493f]'
+            }`}
+          >
             {search ? 'ไม่พบรายการที่ค้นหา' : 'ยังไม่มีรายการที่ปักหมุด'}
           </p>
-          <p className="text-[11px] text-slate-400 mt-0.5">
+          <p
+            className={`text-[11px] mt-0.5 ${
+              isDark ? 'text-[#708076]' : 'text-[#6d7e73]'
+            }`}
+          >
             เมื่อคำนวณวันแล้ว กดปุ่ม "ปักหมุด" ทางซ้ายเพื่อบันทึก
           </p>
         </div>
       ) : (
         <div className="overflow-y-auto max-h-[520px] pt-2 pr-0.5 transition-all">
           <div
-            style={{
-              zoom: zoomLevel,
-            }}
+            style={{ zoom: zoomLevel }}
             className={viewMode === 'compact' ? 'space-y-1.5' : 'space-y-2'}
           >
             {filteredItems.map((item) => {
@@ -184,58 +237,83 @@ export const PinnedList: React.FC<PinnedListProps> = ({
               const hasCustomTitle = !isAutoGeneratedTitle(item.title);
 
               if (viewMode === 'compact') {
-                /* ULTRA COMPACT SINGLE-ROW LAYOUT:
-                   29/10/69 ถึง 6/11/69 is the prominent BOLD text.
-                   Days has orange color. */
                 return (
                   <div
                     key={item.id}
                     className={`py-1.5 px-2.5 rounded-lg border transition-all flex items-center justify-between gap-2 ${
                       isLoaded
-                        ? 'border-amber-400 bg-amber-50/50 shadow-2xs'
-                        : 'border-slate-200/80 bg-slate-50/40 hover:bg-white hover:border-slate-300'
+                        ? isDark
+                          ? 'border-[#5e4120] bg-[#282117] shadow-2xs'
+                          : 'border-[#fcd7b6] bg-[#fef9f2] shadow-2xs'
+                        : isDark
+                        ? 'border-[#26312a] bg-[#141a16] hover:bg-[#1a221d]'
+                        : 'border-[#e4eae6] bg-[#f9faf9] hover:bg-white hover:border-[#ccd6d0]'
                     }`}
                   >
-                    {/* Left: 29/10/69 ถึง 6/11/69 (BOLD AS REQUESTED) + optional custom title */}
+                    {/* Left: 29/10/69 ถึง 6/11/69 (BOLD) + optional title */}
                     <div className="min-w-0 flex-1 flex items-center gap-2">
-                      <span className="text-xs font-bold font-mono-num text-slate-900 truncate whitespace-nowrap">
+                      <span
+                        className={`text-xs font-bold font-mono-num truncate whitespace-nowrap ${
+                          isDark ? 'text-[#f0f4f1]' : 'text-[#1c2621]'
+                        }`}
+                      >
                         {startFormatted} ถึง {endFormatted}
                         {item.includeEndDate && (
-                          <span className="text-[10px] text-slate-400 ml-1 font-normal">(+1)</span>
+                          <span className="text-[10px] opacity-70 ml-1 font-normal">(+1)</span>
                         )}
                       </span>
 
                       {hasCustomTitle && (
                         <>
-                          <span className="text-slate-300">·</span>
-                          <span className="text-xs text-slate-500 truncate max-w-[120px]">
+                          <span className="opacity-40">·</span>
+                          <span
+                            className={`text-xs truncate max-w-[120px] ${
+                              isDark ? 'text-[#8fa095]' : 'text-[#5d6c62]'
+                            }`}
+                          >
                             {item.title}
                           </span>
                         </>
                       )}
                     </div>
 
-                    {/* Middle: DAYS WITH ORANGE COLOR (สีส้มมาอยู่ตรงจำนวนวัน) */}
-                    <div className="flex items-baseline gap-1.5 shrink-0 px-2.5 py-0.5 bg-amber-50/70 border border-amber-200/80 rounded-md shadow-2xs">
-                      {/* Highlighted Days in Orange */}
-                      <span className="text-xs font-black text-amber-700 font-mono-num">
+                    {/* Middle: DAYS WITH SOOTHING WARM OCHRE */}
+                    <div
+                      className={`flex items-baseline gap-1.5 shrink-0 px-2 py-0.5 rounded-md border shadow-2xs ${
+                        isDark
+                          ? 'bg-[#292218] border-[#4a3620]'
+                          : 'bg-[#fef8f0] border-[#fcd7b6]'
+                      }`}
+                    >
+                      <span
+                        className={`text-xs font-black font-mono-num ${
+                          isDark ? 'text-[#fcd34d]' : 'text-[#8e450b]'
+                        }`}
+                      >
                         {item.totalDays} วัน
                       </span>
-                      {/* Secondary Weeks in neutral */}
-                      <span className="text-[10px] font-medium text-slate-500 font-mono-num">
+                      <span
+                        className={`text-[10px] font-medium font-mono-num ${
+                          isDark ? 'text-[#a2b3a8]' : 'text-[#586e61]'
+                        }`}
+                      >
                         ({item.roundedWeeks} สัปดาห์)
                       </span>
                     </div>
 
-                    {/* Right: Quick Actions */}
+                    {/* Right: Actions */}
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
                         onClick={() => onLoadItem(item)}
-                        className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors whitespace-nowrap ${
+                        className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors whitespace-nowrap border ${
                           isLoaded
-                            ? 'bg-amber-100 text-amber-900 font-semibold'
-                            : 'bg-white hover:bg-slate-900 hover:text-white text-slate-700 border border-slate-200'
+                            ? isDark
+                              ? 'bg-[#3b301c] border-[#5e4120] text-[#fde047]'
+                              : 'bg-[#fef3c7] border-[#fde68a] text-[#92400e] font-semibold'
+                            : isDark
+                            ? 'bg-[#1e2722] border-[#2f3d35] text-[#b4c3b9] hover:text-white'
+                            : 'bg-white border-[#d8e0db] text-[#3e4f45] hover:bg-[#f2f6f4]'
                         }`}
                         title="นำค่ามาเปิดในเครื่องคำนวณ"
                       >
@@ -245,11 +323,13 @@ export const PinnedList: React.FC<PinnedListProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCopy(item)}
-                        className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded transition-colors"
+                        className={`p-1 rounded transition-colors ${
+                          isDark ? 'hover:bg-[#202924] text-[#8fa095]' : 'hover:bg-[#eef3f0] text-[#55665b]'
+                        }`}
                         title="คัดลอกสรุป"
                       >
                         {isCopied ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
                         ) : (
                           <Copy className="w-3.5 h-3.5" />
                         )}
@@ -258,7 +338,7 @@ export const PinnedList: React.FC<PinnedListProps> = ({
                       <button
                         type="button"
                         onClick={() => onDeleteItem(item.id)}
-                        className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
                         title="ลบรายการ"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -268,37 +348,50 @@ export const PinnedList: React.FC<PinnedListProps> = ({
                 );
               }
 
-              /* CARD VIEW:
-                 29/10/69 ถึง 6/11/69 is the prominent BOLD text.
-                 Days has orange color. */
+              /* CARD VIEW */
               return (
                 <div
                   key={item.id}
                   className={`p-2.5 rounded-xl border transition-all ${
                     isLoaded
-                      ? 'border-amber-400 bg-amber-50/50 shadow-2xs'
-                      : 'border-slate-200/80 bg-slate-50/40 hover:bg-white hover:border-slate-300'
+                      ? isDark
+                        ? 'border-[#5e4120] bg-[#282117] shadow-2xs'
+                        : 'border-[#fcd7b6] bg-[#fef9f2] shadow-2xs'
+                      : isDark
+                      ? 'border-[#26312a] bg-[#141a16] hover:bg-[#1a221d]'
+                      : 'border-[#e4eae6] bg-[#f9faf9] hover:bg-white hover:border-[#ccd6d0]'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      {/* BOLD Slash Date Format */}
                       <div className="flex items-center gap-1.5">
-                        <span className="text-sm font-bold font-mono-num text-slate-900 truncate">
+                        <span
+                          className={`text-sm font-bold font-mono-num truncate ${
+                            isDark ? 'text-[#f0f4f1]' : 'text-[#1c2621]'
+                          }`}
+                        >
                           {startFormatted} ถึง {endFormatted}
                         </span>
                         {item.includeEndDate && (
-                          <span className="text-[10px] text-slate-400 ml-0.5">(+1 วัน)</span>
+                          <span className="text-[10px] opacity-70 ml-0.5 font-normal">(+1 วัน)</span>
                         )}
                         {isLoaded && (
-                          <span className="text-[9px] bg-amber-200 text-amber-900 px-1 py-0.2 rounded font-medium shrink-0">
+                          <span
+                            className={`text-[9px] px-1 py-0.2 rounded font-medium shrink-0 ${
+                              isDark ? 'bg-[#3b301c] text-[#fde047]' : 'bg-[#fef3c7] text-[#92400e]'
+                            }`}
+                          >
                             เปิดอยู่
                           </span>
                         )}
                       </div>
 
                       {hasCustomTitle && (
-                        <div className="text-xs text-slate-500 mt-0.5 truncate">
+                        <div
+                          className={`text-xs mt-0.5 truncate ${
+                            isDark ? 'text-[#8fa095]' : 'text-[#5d6c62]'
+                          }`}
+                        >
                           {item.title}
                         </div>
                       )}
@@ -308,15 +401,17 @@ export const PinnedList: React.FC<PinnedListProps> = ({
                       <button
                         type="button"
                         onClick={() => handleCopy(item)}
-                        className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded"
+                        className={`p-1 rounded ${
+                          isDark ? 'hover:bg-[#202924] text-[#8fa095]' : 'hover:bg-[#eef3f0] text-[#55665b]'
+                        }`}
                         title="คัดลอกสรุป"
                       >
-                        {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                       <button
                         type="button"
                         onClick={() => onDeleteItem(item.id)}
-                        className="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded"
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded"
                         title="ลบ"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -324,18 +419,28 @@ export const PinnedList: React.FC<PinnedListProps> = ({
                     </div>
                   </div>
 
-                  {/* Highlighted: DAYS IS ORANGE */}
-                  <div className="flex items-center justify-between pt-1.5 mt-1.5 border-t border-slate-200/60 text-xs">
+                  {/* Highlighted Days in warm ochre */}
+                  <div
+                    className={`flex items-center justify-between pt-1.5 mt-1.5 border-t text-xs ${
+                      isDark ? 'border-[#26312a]' : 'border-[#e8ede9]'
+                    }`}
+                  >
                     <div className="flex items-baseline gap-2">
-                      {/* Prominent Days in Orange */}
-                      <span className="text-base font-black text-amber-700 font-mono-num">
+                      <span
+                        className={`text-base font-black font-mono-num ${
+                          isDark ? 'text-[#fcd34d]' : 'text-[#8e450b]'
+                        }`}
+                      >
                         {item.totalDays} วัน
                       </span>
-                      {/* Secondary Weeks in neutral */}
-                      <span className="text-xs font-semibold text-slate-700 font-mono-num">
+                      <span
+                        className={`text-xs font-semibold font-mono-num ${
+                          isDark ? 'text-[#a2b3a8]' : 'text-[#374e40]'
+                        }`}
+                      >
                         {item.roundedWeeks} สัปดาห์
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] opacity-70">
                         (ปัดขึ้น)
                       </span>
                     </div>
@@ -343,10 +448,14 @@ export const PinnedList: React.FC<PinnedListProps> = ({
                     <button
                       type="button"
                       onClick={() => onLoadItem(item)}
-                      className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors ${
+                      className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors border ${
                         isLoaded
-                          ? 'bg-amber-100 text-amber-900 font-semibold'
-                          : 'bg-white hover:bg-slate-900 hover:text-white text-slate-700 border border-slate-200'
+                          ? isDark
+                            ? 'bg-[#3b301c] border-[#5e4120] text-[#fde047]'
+                            : 'bg-[#fef3c7] border-[#fde68a] text-[#92400e] font-semibold'
+                          : isDark
+                          ? 'bg-[#1e2722] border-[#2f3d35] text-[#b4c3b9] hover:text-white'
+                          : 'bg-white border-[#d8e0db] text-[#3e4f45] hover:bg-[#f2f6f4]'
                       }`}
                     >
                       {isLoaded ? 'โหลดอยู่' : 'เปิดคำนวณ'}
