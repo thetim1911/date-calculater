@@ -70,7 +70,7 @@ export const PinnedList: React.FC<PinnedListProps> = ({
   return (
     <div
       id="pinned-section"
-      className={`rounded-2xl border p-4 sm:p-5 shadow-2xs flex flex-col h-full transition-colors ${
+      className={`rounded-2xl border p-4 sm:p-5 shadow-2xs flex flex-col transition-colors ${
         isDark
           ? 'bg-[#181f1b] border-[#29352e] text-[#e3e8e5]'
           : 'bg-[#ffffff] border-[#dde3df] text-[#1c2621]'

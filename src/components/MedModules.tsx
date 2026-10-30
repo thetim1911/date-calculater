@@ -1,36 +1,35 @@
 import React, { useState } from 'react';
-import { Plus, Pill, Syringe, Trash2, Copy, Check, Bookmark, ChevronDown } from 'lucide-react';
-import { ThemeMode } from '../types';
+import {
+  Plus,
+  Pill,
+  Syringe,
+  Trash2,
+  Copy,
+  Check,
+  Bookmark,
+  ChevronDown,
+  ArrowRight,
+  ArrowLeft,
+  ChevronUp,
+  GripVertical,
+  Files,
+} from 'lucide-react';
+import { ColumnSide, MedModuleItem, WarfarinModule, InsulinModule, ThemeMode } from '../types';
 
-export interface WarfarinModule {
-  id: string;
-  type: 'warfarin';
-  title: string;
-  tablets: number;
-  selectedDays: number[];
-  extraDays: number;
-}
-
-export interface InsulinModule {
-  id: string;
-  type: 'insulin';
-  title: string;
-  morning: number;
-  noon: number;
-  evening: number;
-  bedtime: number;
-  packSize: number;
-  extraDays: number;
-}
-
-export type MedModuleItem = WarfarinModule | InsulinModule;
-
-interface MedModulesProps {
+export interface MedColumnProps {
+  column: ColumnSide;
+  modules: MedModuleItem[];
   startDateStr: string;
   totalDays: number;
-  roundedWeeks: number;
   theme: ThemeMode;
   onPin: (title: string) => void;
+  onMoveColumn: (id: string, targetColumn: ColumnSide) => void;
+  onMoveOrder: (id: string, direction: 'up' | 'down') => void;
+  onDropItem: (draggedId: string, targetId: string | null, targetColumn: ColumnSide) => void;
+  onAddModule: (type: 'warfarin' | 'insulin', targetColumn: ColumnSide) => void;
+  onDuplicateModule: (id: string) => void;
+  onUpdateModule: (id: string, updates: Partial<WarfarinModule> | Partial<InsulinModule>) => void;
+  onRemoveModule: (id: string) => void;
 }
 
 const DAYS_OF_WEEK = [
@@ -43,74 +42,27 @@ const DAYS_OF_WEEK = [
   { id: 0, label: 'อาทิตย์', short: 'อา' },
 ];
 
-export const MedModules: React.FC<MedModulesProps> = ({
+export const MedColumn: React.FC<MedColumnProps> = ({
+  column,
+  modules,
   startDateStr,
   totalDays,
   theme,
   onPin,
+  onMoveColumn,
+  onMoveOrder,
+  onDropItem,
+  onAddModule,
+  onDuplicateModule,
+  onUpdateModule,
+  onRemoveModule,
 }) => {
   const isDark = theme === 'dark';
-
-  const [modules, setModules] = useState<MedModuleItem[]>([
-    {
-      id: 'warfarin-1',
-      type: 'warfarin',
-      title: 'ยา Warfarin',
-      tablets: 1,
-      selectedDays: [1, 2, 3, 4, 5, 6, 0],
-      extraDays: 0,
-    },
-  ]);
-
+  const isLeft = column === 'left';
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const handleAddWarfarin = () => {
-    const count = modules.filter((m) => m.type === 'warfarin').length + 1;
-    const newMod: WarfarinModule = {
-      id: `warfarin_${Date.now()}`,
-      type: 'warfarin',
-      title: `ยา Warfarin #${count}`,
-      tablets: 1,
-      selectedDays: [1, 2, 3, 4, 5],
-      extraDays: 0,
-    };
-    setModules((prev) => [...prev, newMod]);
-    setIsAddMenuOpen(false);
-  };
-
-  const handleAddInsulin = () => {
-    const count = modules.filter((m) => m.type === 'insulin').length + 1;
-    const newMod: InsulinModule = {
-      id: `insulin_${Date.now()}`,
-      type: 'insulin',
-      title: `ยาฉีดเบาหวาน #${count}`,
-      morning: 10,
-      noon: 0,
-      evening: 10,
-      bedtime: 0,
-      packSize: 300,
-      extraDays: 0,
-    };
-    setModules((prev) => [...prev, newMod]);
-    setIsAddMenuOpen(false);
-  };
-
-  const handleRemoveModule = (id: string) => {
-    setModules((prev) => prev.filter((m) => m.id !== id));
-  };
-
-  const handleUpdateWarfarin = (id: string, updates: Partial<WarfarinModule>) => {
-    setModules((prev) =>
-      prev.map((m) => (m.id === id && m.type === 'warfarin' ? { ...m, ...updates } : m))
-    );
-  };
-
-  const handleUpdateInsulin = (id: string, updates: Partial<InsulinModule>) => {
-    setModules((prev) =>
-      prev.map((m) => (m.id === id && m.type === 'insulin' ? { ...m, ...updates } : m))
-    );
-  };
+  const [dragOverTargetId, setDragOverTargetId] = useState<string | null>(null);
+  const [isColumnDragOver, setIsColumnDragOver] = useState(false);
 
   const calculateWarfarin = (mod: WarfarinModule) => {
     const daysToCount = totalDays + mod.extraDays;
@@ -120,7 +72,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
 
     const [y, m, d] = startDateStr.split('-').map(Number);
     const startObj = y && m && d ? new Date(y, m - 1, d) : new Date();
-    let currentDayOfWeek = startObj.getDay();
+    const currentDayOfWeek = startObj.getDay();
 
     let doseDaysCount = 0;
     const fullWeeks = Math.floor(daysToCount / 7);
@@ -138,7 +90,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
     const roundedTablets = Math.ceil(exactTotal);
 
     const dayLabels = mod.selectedDays
-      .map((d) => DAYS_OF_WEEK.find((item) => item.id === d)?.short)
+      .map((dayId) => DAYS_OF_WEEK.find((item) => item.id === dayId)?.short)
       .join(',');
 
     return {
@@ -151,7 +103,8 @@ export const MedModules: React.FC<MedModulesProps> = ({
 
   const calculateInsulin = (mod: InsulinModule) => {
     const daysToCount = totalDays + mod.extraDays;
-    const dailyTotal = (mod.morning || 0) + (mod.noon || 0) + (mod.evening || 0) + (mod.bedtime || 0);
+    const dailyTotal =
+      (mod.morning || 0) + (mod.noon || 0) + (mod.evening || 0) + (mod.bedtime || 0);
     const totalUnits = daysToCount * dailyTotal;
     const pens = Math.ceil(totalUnits / mod.packSize);
 
@@ -169,50 +122,103 @@ export const MedModules: React.FC<MedModulesProps> = ({
     setTimeout(() => setCopiedId(null), 1800);
   };
 
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleCardDragOver = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverTargetId !== targetId) {
+      setDragOverTargetId(targetId);
+    }
+  };
+
+  const handleCardDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTargetId(null);
+    setIsColumnDragOver(false);
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (draggedId) {
+      onDropItem(draggedId, targetId, column);
+    }
+  };
+
+  const handleColumnDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setIsColumnDragOver(true);
+  };
+
+  const handleColumnDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsColumnDragOver(false);
+    setDragOverTargetId(null);
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (draggedId) {
+      onDropItem(draggedId, null, column);
+    }
+  };
+
   return (
-    <div className="space-y-3.5 pt-1">
-      {/* Header & Add Button */}
+    <div
+      onDragOver={handleColumnDragOver}
+      onDragLeave={() => setIsColumnDragOver(false)}
+      onDrop={handleColumnDrop}
+      className={`space-y-3 pt-1 rounded-2xl transition-all ${
+        isColumnDragOver
+          ? isDark
+            ? 'ring-2 ring-emerald-500/50 bg-[#16231d]/30 p-2'
+            : 'ring-2 ring-emerald-500/40 bg-emerald-50/40 p-2'
+          : ''
+      }`}
+    >
+      {/* Column Header & Add Option Button */}
       <div
-        className={`flex items-center justify-between gap-3 pb-2 border-b ${
+        className={`flex items-center justify-between gap-2 pb-2 border-b ${
           isDark ? 'border-[#26312a]' : 'border-[#e4eae6]'
         }`}
       >
         <div className="flex items-center gap-2">
           <div
-            className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ${
+            className={`w-5 h-5 rounded-md flex items-center justify-center font-bold text-[11px] ${
               isDark ? 'bg-[#29352e] text-[#86efac]' : 'bg-[#e2ebe5] text-[#2c4035]'
             }`}
           >
-            💊
+            {isLeft ? 'L' : 'R'}
           </div>
           <h3
-            className={`text-sm font-bold tracking-tight ${
+            className={`text-xs sm:text-sm font-bold tracking-tight ${
               isDark ? 'text-[#e3e8e5]' : 'text-[#202e26]'
             }`}
           >
-            Option เสริม: คำนวณยา (อิงตาม {totalDays} วัน)
+            Option เสริม ({isLeft ? 'ฝั่งซ้าย' : 'ฝั่งขวา'}){' '}
+            <span className="opacity-70 font-normal text-xs">· อิง {totalDays} วัน</span>
           </h3>
         </div>
 
-        {/* Dropdown to add options */}
+        {/* Dropdown to add options to this column */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 shadow-2xs transition-colors ${
               isDark
                 ? 'bg-[#27362e] text-[#bbf7d0] hover:bg-[#31443a]'
                 : 'bg-[#293c31] text-[#e6f4ec] hover:bg-[#203027]'
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>เพิ่ม Option เสริม</span>
+            <span>เพิ่ม Option ในฝั่งนี้</span>
             <ChevronDown className="w-3 h-3 opacity-70" />
           </button>
 
           {isAddMenuOpen && (
             <div
-              className={`absolute right-0 mt-1.5 w-64 rounded-xl shadow-lg border py-1.5 z-40 animate-in fade-in zoom-in-95 duration-100 ${
+              className={`absolute right-0 mt-1.5 w-60 rounded-xl shadow-xl border py-1.5 z-40 animate-in fade-in zoom-in-95 duration-100 ${
                 isDark
                   ? 'bg-[#181f1b] border-[#29352e] text-[#e3e8e5]'
                   : 'bg-white border-[#d8e0db] text-[#1c2621]'
@@ -220,7 +226,10 @@ export const MedModules: React.FC<MedModulesProps> = ({
             >
               <button
                 type="button"
-                onClick={handleAddWarfarin}
+                onClick={() => {
+                  onAddModule('warfarin', column);
+                  setIsAddMenuOpen(false);
+                }}
                 className={`w-full px-3 py-2 text-left text-xs font-medium flex items-center gap-2 transition-colors ${
                   isDark
                     ? 'hover:bg-[#261f17] text-[#e2ded9]'
@@ -236,13 +245,16 @@ export const MedModules: React.FC<MedModulesProps> = ({
                 </div>
                 <div>
                   <div className="font-bold">+ ยา Warfarin</div>
-                  <div className="text-[11px] opacity-70">กรอกจำนวนเม็ด & เลือกวัน (จ-อา)</div>
+                  <div className="text-[10px] opacity-70">คำนวณเม็ด & เลือกวัน (จ-อา)</div>
                 </div>
               </button>
 
               <button
                 type="button"
-                onClick={handleAddInsulin}
+                onClick={() => {
+                  onAddModule('insulin', column);
+                  setIsAddMenuOpen(false);
+                }}
                 className={`w-full px-3 py-2 text-left text-xs font-medium flex items-center gap-2 transition-colors border-t ${
                   isDark
                     ? 'border-[#26312a] hover:bg-[#162322] text-[#e2ded9]'
@@ -258,7 +270,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                 </div>
                 <div>
                   <div className="font-bold">+ ยาฉีดเบาหวาน</div>
-                  <div className="text-[11px] opacity-70">แยกตามมื้อ เช้า/เที่ยง/เย็น/ก่อนนอน</div>
+                  <div className="text-[10px] opacity-70">แยกตามมื้อ เช้า/เที่ยง/เย็น/ก่อนนอน</div>
                 </div>
               </button>
             </div>
@@ -266,23 +278,30 @@ export const MedModules: React.FC<MedModulesProps> = ({
         </div>
       </div>
 
-      {/* Modules List */}
+      {/* Cards List in this column */}
       {modules.length === 0 ? (
         <div
-          className={`p-6 text-center rounded-2xl border border-dashed text-xs space-y-1.5 ${
+          onDragOver={handleColumnDragOver}
+          onDrop={handleColumnDrop}
+          className={`p-5 text-center rounded-2xl border border-dashed text-xs space-y-1.5 transition-colors ${
             isDark
-              ? 'bg-[#141a16] border-[#29352e] text-[#819388]'
-              : 'bg-white border-[#d5ded8] text-[#55665b]'
+              ? 'bg-[#141a16]/60 border-[#29352e] text-[#819388]'
+              : 'bg-white/60 border-[#d5ded8] text-[#55665b]'
           }`}
         >
-          <p className="font-medium">ยังไม่มี Option เสริมที่เลือกไว้</p>
-          <p className="text-[11px] opacity-70">
-            กดปุ่ม "+ เพิ่ม Option เสริม" เพื่อคำนวณยา Warfarin หรือยาฉีดเบาหวาน
+          <p className="font-semibold">ไม่มี Option ในฝั่งนี้</p>
+          <p className="text-[11px] opacity-75">
+            ลากการ์ดมาวางที่นี่ หรือกดปุ่ม <strong>"ย้าย{isLeft ? 'มาฝั่งซ้าย' : 'ไปฝั่งขวา'}"</strong> จากอีกฝั่ง
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {modules.map((mod) => {
+          {modules.map((mod, index) => {
+            const isFirst = index === 0;
+            const isLast = index === modules.length - 1;
+            const isOverThisCard = dragOverTargetId === mod.id;
+
+            /* WARFARIN MODULE */
             if (mod.type === 'warfarin') {
               const res = calculateWarfarin(mod);
               const isCopied = copiedId === mod.id;
@@ -290,18 +309,18 @@ export const MedModules: React.FC<MedModulesProps> = ({
               const toggleDay = (dayId: number) => {
                 const current = mod.selectedDays;
                 if (current.includes(dayId)) {
-                  handleUpdateWarfarin(mod.id, {
+                  onUpdateModule(mod.id, {
                     selectedDays: current.filter((d) => d !== dayId),
                   });
                 } else {
-                  handleUpdateWarfarin(mod.id, {
+                  onUpdateModule(mod.id, {
                     selectedDays: [...current, dayId],
                   });
                 }
               };
 
               const selectPreset = (days: number[]) => {
-                handleUpdateWarfarin(mod.id, { selectedDays: days });
+                onUpdateModule(mod.id, { selectedDays: days });
               };
 
               const copyText = `💊 ${mod.title} (${totalDays} วัน${mod.extraDays > 0 ? ` + เผื่อ ${mod.extraDays} วัน` : ''})\n• กินวัน: ${mod.selectedDays.map((d) => DAYS_OF_WEEK.find((i) => i.id === d)?.short).join(',')}\n• ครั้งละ: ${mod.tablets} เม็ด\n• จำนวนที่ต้องจ่าย: ${res.roundedTablets} เม็ด (${res.detail})`;
@@ -309,37 +328,118 @@ export const MedModules: React.FC<MedModulesProps> = ({
               return (
                 <div
                   key={mod.id}
-                  className={`p-4 rounded-2xl border shadow-2xs space-y-3 transition-colors ${
-                    isDark
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, mod.id)}
+                  onDragOver={(e) => handleCardDragOver(e, mod.id)}
+                  onDrop={(e) => handleCardDrop(e, mod.id)}
+                  className={`p-4 rounded-2xl border shadow-2xs space-y-3 transition-all relative ${
+                    isOverThisCard
+                      ? isDark
+                        ? 'border-emerald-500 bg-[#1c2921]'
+                        : 'border-emerald-500 bg-emerald-50/70'
+                      : isDark
                       ? 'bg-[#181f1b] border-[#382b1c] text-[#e3e8e5]'
                       : 'bg-white border-[#fcd7b6]/80 text-[#1c2621]'
                   }`}
                 >
-                  {/* Card Header */}
+                  {/* Top Bar: Drag Handle, Title, Cross-Column Switcher, Reorder & Actions */}
                   <div
-                    className={`flex items-center justify-between gap-2 pb-2 border-b ${
+                    className={`flex flex-wrap items-center justify-between gap-1.5 pb-2 border-b ${
                       isDark ? 'border-[#2d2419]' : 'border-[#faede1]'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    {/* Left: Drag Handle + Icon + Title */}
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <div
-                        className={`w-6 h-6 rounded flex items-center justify-center ${
+                        className="cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title="ลากเพื่อย้ายตำแหน่งหรือย้ายข้ามฝั่งได้อย่างอิสระ"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      <div
+                        className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
                           isDark ? 'bg-[#3b2e1e] text-[#fbbf24]' : 'bg-[#fef3c7] text-[#92400e]'
                         }`}
                       >
                         <Pill className="w-3.5 h-3.5" />
                       </div>
+
                       <input
                         type="text"
                         value={mod.title}
-                        onChange={(e) => handleUpdateWarfarin(mod.id, { title: e.target.value })}
-                        className={`text-xs font-bold bg-transparent border-b border-transparent hover:border-slate-300 focus:outline-none px-1 py-0.5 ${
+                        onChange={(e) => onUpdateModule(mod.id, { title: e.target.value })}
+                        className={`text-xs font-bold bg-transparent border-b border-transparent hover:border-slate-300 focus:outline-none px-1 py-0.5 truncate max-w-[130px] sm:max-w-[170px] ${
                           isDark ? 'text-[#f0f4f1] focus:border-[#fbbf24]' : 'text-[#1c2621] focus:border-amber-600'
                         }`}
                       />
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    {/* Right: Cross-Column Move Button + Reorder + Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* 1-Click Move Column Button */}
+                      <button
+                        type="button"
+                        onClick={() => onMoveColumn(mod.id, isLeft ? 'right' : 'left')}
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 border transition-colors shadow-2xs ${
+                          isLeft
+                            ? isDark
+                              ? 'bg-[#26312a] hover:bg-[#324238] border-[#3a4d41] text-[#86efac]'
+                              : 'bg-[#edf5f0] hover:bg-[#dfeee5] border-[#c0dac9] text-[#1c4d2d]'
+                            : isDark
+                            ? 'bg-[#26312a] hover:bg-[#324238] border-[#3a4d41] text-[#86efac]'
+                            : 'bg-[#edf5f0] hover:bg-[#dfeee5] border-[#c0dac9] text-[#1c4d2d]'
+                        }`}
+                        title={isLeft ? 'ย้ายการ์ดนี้ไปฝั่งขวา' : 'ย้ายการ์ดนี้มาฝั่งซ้าย'}
+                      >
+                        {isLeft ? (
+                          <>
+                            <span>ไปฝั่งขวา</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </>
+                        ) : (
+                          <>
+                            <ArrowLeft className="w-3 h-3" />
+                            <span>มาฝั่งซ้าย</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Up/Down buttons */}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          disabled={isFirst}
+                          onClick={() => onMoveOrder(mod.id, 'up')}
+                          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 transition-colors"
+                          title="เลื่อนขึ้น"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLast}
+                          onClick={() => onMoveOrder(mod.id, 'down')}
+                          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 transition-colors"
+                          title="เลื่อนลง"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Duplicate */}
+                      <button
+                        type="button"
+                        onClick={() => onDuplicateModule(mod.id)}
+                        className={`p-1 rounded transition-colors ${
+                          isDark ? 'hover:bg-[#202924] text-[#8fa095]' : 'hover:bg-[#eef3f0] text-[#55665b]'
+                        }`}
+                        title="คัดลอกสร้างการ์ดเพิ่ม (คำนวณสูตรอื่น)"
+                      >
+                        <Files className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Copy summary */}
                       <button
                         type="button"
                         onClick={() => handleCopy(mod.id, copyText)}
@@ -350,9 +450,11 @@ export const MedModules: React.FC<MedModulesProps> = ({
                       >
                         {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
+
+                      {/* Delete */}
                       <button
                         type="button"
-                        onClick={() => handleRemoveModule(mod.id)}
+                        onClick={() => onRemoveModule(mod.id)}
                         className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
                         title="ลบช่องนี้"
                       >
@@ -369,7 +471,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                         <button
                           key={t}
                           type="button"
-                          onClick={() => handleUpdateWarfarin(mod.id, { tablets: t })}
+                          onClick={() => onUpdateModule(mod.id, { tablets: t })}
                           className={`px-2 py-0.5 rounded text-[11px] font-mono-num transition-colors ${
                             mod.tablets === t
                               ? isDark
@@ -391,7 +493,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                           max="20"
                           value={mod.tablets}
                           onChange={(e) =>
-                            handleUpdateWarfarin(mod.id, {
+                            onUpdateModule(mod.id, {
                               tablets: Math.max(0, parseFloat(e.target.value) || 0),
                             })
                           }
@@ -472,7 +574,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                         <button
                           key={b}
                           type="button"
-                          onClick={() => handleUpdateWarfarin(mod.id, { extraDays: b })}
+                          onClick={() => onUpdateModule(mod.id, { extraDays: b })}
                           className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                             mod.extraDays === b
                               ? isDark
@@ -548,37 +650,118 @@ export const MedModules: React.FC<MedModulesProps> = ({
               return (
                 <div
                   key={mod.id}
-                  className={`p-4 rounded-2xl border shadow-2xs space-y-3 transition-colors ${
-                    isDark
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, mod.id)}
+                  onDragOver={(e) => handleCardDragOver(e, mod.id)}
+                  onDrop={(e) => handleCardDrop(e, mod.id)}
+                  className={`p-4 rounded-2xl border shadow-2xs space-y-3 transition-all relative ${
+                    isOverThisCard
+                      ? isDark
+                        ? 'border-emerald-500 bg-[#1c2921]'
+                        : 'border-emerald-500 bg-emerald-50/70'
+                      : isDark
                       ? 'bg-[#181f1b] border-[#1f373d] text-[#e3e8e5]'
                       : 'bg-white border-[#bfe0e8]/80 text-[#1c2621]'
                   }`}
                 >
-                  {/* Card Header */}
+                  {/* Top Bar: Drag Handle, Title, Cross-Column Switcher, Reorder & Actions */}
                   <div
-                    className={`flex items-center justify-between gap-2 pb-2 border-b ${
+                    className={`flex flex-wrap items-center justify-between gap-1.5 pb-2 border-b ${
                       isDark ? 'border-[#1b2f33]' : 'border-[#e4f2f5]'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
+                    {/* Left: Drag Handle + Icon + Title */}
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <div
-                        className={`w-6 h-6 rounded flex items-center justify-center ${
+                        className="cursor-grab active:cursor-grabbing p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                        title="ลากเพื่อย้ายตำแหน่งหรือย้ายข้ามฝั่งได้อย่างอิสระ"
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
+
+                      <div
+                        className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${
                           isDark ? 'bg-[#183133] text-[#67e8f9]' : 'bg-[#e0f2fe] text-[#0369a1]'
                         }`}
                       >
                         <Syringe className="w-3.5 h-3.5" />
                       </div>
+
                       <input
                         type="text"
                         value={mod.title}
-                        onChange={(e) => handleUpdateInsulin(mod.id, { title: e.target.value })}
-                        className={`text-xs font-bold bg-transparent border-b border-transparent hover:border-slate-300 focus:outline-none px-1 py-0.5 ${
+                        onChange={(e) => onUpdateModule(mod.id, { title: e.target.value })}
+                        className={`text-xs font-bold bg-transparent border-b border-transparent hover:border-slate-300 focus:outline-none px-1 py-0.5 truncate max-w-[130px] sm:max-w-[170px] ${
                           isDark ? 'text-[#f0f4f1] focus:border-cyan-400' : 'text-[#1c2621] focus:border-teal-600'
                         }`}
                       />
                     </div>
 
-                    <div className="flex items-center gap-1">
+                    {/* Right: Cross-Column Move Button + Reorder + Actions */}
+                    <div className="flex items-center gap-1 shrink-0">
+                      {/* 1-Click Move Column Button */}
+                      <button
+                        type="button"
+                        onClick={() => onMoveColumn(mod.id, isLeft ? 'right' : 'left')}
+                        className={`px-2 py-0.5 rounded text-[11px] font-semibold flex items-center gap-1 border transition-colors shadow-2xs ${
+                          isLeft
+                            ? isDark
+                              ? 'bg-[#26312a] hover:bg-[#324238] border-[#3a4d41] text-[#86efac]'
+                              : 'bg-[#edf5f0] hover:bg-[#dfeee5] border-[#c0dac9] text-[#1c4d2d]'
+                            : isDark
+                            ? 'bg-[#26312a] hover:bg-[#324238] border-[#3a4d41] text-[#86efac]'
+                            : 'bg-[#edf5f0] hover:bg-[#dfeee5] border-[#c0dac9] text-[#1c4d2d]'
+                        }`}
+                        title={isLeft ? 'ย้ายการ์ดนี้ไปฝั่งขวา' : 'ย้ายการ์ดนี้มาฝั่งซ้าย'}
+                      >
+                        {isLeft ? (
+                          <>
+                            <span>ไปฝั่งขวา</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </>
+                        ) : (
+                          <>
+                            <ArrowLeft className="w-3 h-3" />
+                            <span>มาฝั่งซ้าย</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* Up/Down buttons */}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          disabled={isFirst}
+                          onClick={() => onMoveOrder(mod.id, 'up')}
+                          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 transition-colors"
+                          title="เลื่อนขึ้น"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLast}
+                          onClick={() => onMoveOrder(mod.id, 'down')}
+                          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-20 transition-colors"
+                          title="เลื่อนลง"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Duplicate */}
+                      <button
+                        type="button"
+                        onClick={() => onDuplicateModule(mod.id)}
+                        className={`p-1 rounded transition-colors ${
+                          isDark ? 'hover:bg-[#202924] text-[#8fa095]' : 'hover:bg-[#eef3f0] text-[#55665b]'
+                        }`}
+                        title="คัดลอกสร้างการ์ดเพิ่ม (คำนวณอีกสูตร)"
+                      >
+                        <Files className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Copy summary */}
                       <button
                         type="button"
                         onClick={() => handleCopy(mod.id, copyText)}
@@ -589,9 +772,11 @@ export const MedModules: React.FC<MedModulesProps> = ({
                       >
                         {isCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
+
+                      {/* Delete */}
                       <button
                         type="button"
-                        onClick={() => handleRemoveModule(mod.id)}
+                        onClick={() => onRemoveModule(mod.id)}
                         className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
                         title="ลบช่องนี้"
                       >
@@ -629,7 +814,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                             min="0"
                             value={mod[meal.field]}
                             onChange={(e) =>
-                              handleUpdateInsulin(mod.id, {
+                              onUpdateModule(mod.id, {
                                 [meal.field]: Math.max(0, parseInt(e.target.value) || 0),
                               })
                             }
@@ -659,7 +844,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                         <button
                           key={pIdx}
                           type="button"
-                          onClick={() => handleUpdateInsulin(mod.id, { packSize: pkg.size })}
+                          onClick={() => onUpdateModule(mod.id, { packSize: pkg.size })}
                           className={`px-2 py-0.5 rounded text-[11px] border transition-colors ${
                             mod.packSize === pkg.size
                               ? isDark
@@ -684,7 +869,7 @@ export const MedModules: React.FC<MedModulesProps> = ({
                         <button
                           key={b}
                           type="button"
-                          onClick={() => handleUpdateInsulin(mod.id, { extraDays: b })}
+                          onClick={() => onUpdateModule(mod.id, { extraDays: b })}
                           className={`px-1.5 py-0.5 rounded text-[10px] border transition-colors ${
                             mod.extraDays === b
                               ? isDark
@@ -741,7 +926,13 @@ export const MedModules: React.FC<MedModulesProps> = ({
 
                     <button
                       type="button"
-                      onClick={() => onPin(`${mod.title}: ${res.totalUnits}U (${res.pens} ${mod.packSize === 300 ? 'ด้าม' : 'ขวด'})`)}
+                      onClick={() =>
+                        onPin(
+                          `${mod.title}: ${res.totalUnits}U (${res.pens} ${
+                            mod.packSize === 300 ? 'ด้าม' : 'ขวด'
+                          })`
+                        )
+                      }
                       className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors shadow-2xs flex items-center gap-1 shrink-0 ${
                         isDark
                           ? 'bg-[#173a40] text-[#cffafe] hover:bg-[#1f4c54]'

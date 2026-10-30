@@ -7,13 +7,38 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { TopNav } from './components/TopNav';
 import { DateDiffCalculator } from './components/DateDiffCalculator';
 import { PinnedList } from './components/PinnedList';
-import { MedModules } from './components/MedModules';
-import { PinnedItem, YearFormat, ThemeMode } from './types';
+import { MedColumn } from './components/MedModules';
+import { PinnedItem, YearFormat, ThemeMode, ColumnSide, MedModuleItem, WarfarinModule, InsulinModule } from './types';
 import { toInputDateString, calculateDateDiff } from './utils/dateCalc';
 import { CheckCircle2 } from 'lucide-react';
 
 const STORAGE_KEY = 'datespan_pinned_items_v2';
 const THEME_KEY = 'datespan_theme_mode_v1';
+const MED_MODULES_KEY = 'datespan_med_modules_v3';
+
+const DEFAULT_MODULES: MedModuleItem[] = [
+  {
+    id: 'warfarin-1',
+    type: 'warfarin',
+    title: 'ยา Warfarin',
+    tablets: 1,
+    selectedDays: [1, 2, 3, 4, 5, 6, 0],
+    extraDays: 0,
+    column: 'left',
+  },
+  {
+    id: 'insulin-1',
+    type: 'insulin',
+    title: 'ยาฉีดเบาหวาน #1',
+    morning: 10,
+    noon: 0,
+    evening: 10,
+    bedtime: 0,
+    packSize: 300,
+    extraDays: 0,
+    column: 'right', // Default to right column under pinned list to balance empty space
+  },
+];
 
 export default function App() {
   const [yearFormat, setYearFormat] = useState<YearFormat>('be');
@@ -81,6 +106,26 @@ export default function App() {
     ];
   });
 
+  // Medical Modules (Warfarin & Insulin) with free cross-column placement
+  const [modules, setModules] = useState<MedModuleItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(MED_MODULES_KEY);
+      if (saved) {
+        const parsed: MedModuleItem[] = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Ensure all have a column property
+          return parsed.map((m) => ({
+            ...m,
+            column: m.column || 'left',
+          }));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load med modules', e);
+    }
+    return DEFAULT_MODULES;
+  });
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -90,6 +135,14 @@ export default function App() {
       console.error('Failed to save pinned items', e);
     }
   }, [pinnedItems]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(MED_MODULES_KEY, JSON.stringify(modules));
+    } catch (e) {
+      console.error('Failed to save med modules', e);
+    }
+  }, [modules]);
 
   useEffect(() => {
     try {
@@ -141,6 +194,147 @@ export default function App() {
     showToast(`โหลด "${item.title}" เข้าเครื่องคำนวณแล้ว`);
   };
 
+  // Module Management Handlers
+  const handleMoveColumn = (id: string, targetColumn: ColumnSide) => {
+    setModules((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, column: targetColumn } : m))
+    );
+    showToast(targetColumn === 'right' ? '➡️ ย้ายการ์ดไปฝั่งขวาแล้ว' : '⬅️ ย้ายการ์ดมาฝั่งซ้ายแล้ว');
+  };
+
+  const handleMoveOrder = (id: string, direction: 'up' | 'down') => {
+    setModules((prev) => {
+      const targetMod = prev.find((m) => m.id === id);
+      if (!targetMod) return prev;
+
+      const col = targetMod.column;
+      const colItems = prev.filter((m) => m.column === col);
+      const otherItems = prev.filter((m) => m.column !== col);
+      const colIndex = colItems.findIndex((m) => m.id === id);
+
+      if (direction === 'up' && colIndex > 0) {
+        const reorderedCol = [...colItems];
+        const [moved] = reorderedCol.splice(colIndex, 1);
+        reorderedCol.splice(colIndex - 1, 0, moved);
+        return [...otherItems, ...reorderedCol];
+      } else if (direction === 'down' && colIndex < colItems.length - 1) {
+        const reorderedCol = [...colItems];
+        const [moved] = reorderedCol.splice(colIndex, 1);
+        reorderedCol.splice(colIndex + 1, 0, moved);
+        return [...otherItems, ...reorderedCol];
+      }
+      return prev;
+    });
+  };
+
+  const handleDropItem = (
+    draggedId: string,
+    targetId: string | null,
+    targetColumn: ColumnSide
+  ) => {
+    setModules((prev) => {
+      const draggedItem = prev.find((m) => m.id === draggedId);
+      if (!draggedItem) return prev;
+
+      const remaining = prev.filter((m) => m.id !== draggedId);
+      const updatedItem: MedModuleItem = { ...draggedItem, column: targetColumn };
+
+      if (!targetId || targetId === draggedId) {
+        // Append to target column
+        return [...remaining, updatedItem];
+      }
+
+      // Insert before targetId
+      const targetIndex = remaining.findIndex((m) => m.id === targetId);
+      if (targetIndex === -1) {
+        return [...remaining, updatedItem];
+      }
+
+      const nextList = [...remaining];
+      nextList.splice(targetIndex, 0, updatedItem);
+      return nextList;
+    });
+    showToast(`ย้ายตำแหน่งการ์ดเรียบร้อย`);
+  };
+
+  const handleAddModule = (type: 'warfarin' | 'insulin', targetColumn: ColumnSide) => {
+    const isW = type === 'warfarin';
+    const count = modules.filter((m) => m.type === type).length + 1;
+    const newId = `${type}_${Date.now()}`;
+
+    let newMod: MedModuleItem;
+    if (isW) {
+      newMod = {
+        id: newId,
+        type: 'warfarin',
+        title: `ยา Warfarin #${count}`,
+        tablets: 1,
+        selectedDays: [1, 2, 3, 4, 5],
+        extraDays: 0,
+        column: targetColumn,
+      } as WarfarinModule;
+    } else {
+      newMod = {
+        id: newId,
+        type: 'insulin',
+        title: `ยาฉีดเบาหวาน #${count}`,
+        morning: 10,
+        noon: 0,
+        evening: 10,
+        bedtime: 0,
+        packSize: 300,
+        extraDays: 0,
+        column: targetColumn,
+      } as InsulinModule;
+    }
+
+    setModules((prev) => [...prev, newMod]);
+    showToast(`เพิ่ม ${newMod.title} ในฝั่ง${targetColumn === 'left' ? 'ซ้าย' : 'ขวา'}แล้ว`);
+  };
+
+  const handleDuplicateModule = (id: string) => {
+    const mod = modules.find((m) => m.id === id);
+    if (!mod) return;
+
+    const newId = `${mod.type}_copy_${Date.now()}`;
+    const clone: MedModuleItem = {
+      ...mod,
+      id: newId,
+      title: `${mod.title} (สำเนา)`,
+    };
+
+    setModules((prev) => {
+      const idx = prev.findIndex((m) => m.id === id);
+      const nextList = [...prev];
+      nextList.splice(idx + 1, 0, clone);
+      return nextList;
+    });
+    showToast(`คัดลอกสร้างการ์ดเพิ่มแล้ว`);
+  };
+
+  const handleUpdateModule = (
+    id: string,
+    updates: Partial<WarfarinModule> | Partial<InsulinModule>
+  ) => {
+    setModules((prev) =>
+      prev.map((m) => (m.id === id ? ({ ...m, ...updates } as MedModuleItem) : m))
+    );
+  };
+
+  const handleRemoveModule = (id: string) => {
+    setModules((prev) => prev.filter((m) => m.id !== id));
+    showToast('ลบ Option เสริมแล้ว');
+  };
+
+  const leftModules = useMemo(
+    () => modules.filter((m) => m.column === 'left'),
+    [modules]
+  );
+  const rightModules = useMemo(
+    () => modules.filter((m) => m.column === 'right'),
+    [modules]
+  );
+
   const isDark = theme === 'dark';
 
   return (
@@ -160,10 +354,10 @@ export default function App() {
         setTheme={setTheme}
       />
 
-      {/* Main Single-Page Unified Grid: 50/50 Split (คนละครึ่ง) */}
+      {/* Main Single-Page Unified Grid: 50/50 Split (คนละครึ่ง) พร้อมต่อการ์ดได้อิสระทั้งสองฝั่ง */}
       <main className="flex-1 max-w-[1400px] w-full mx-auto px-3 sm:px-6 py-5 sm:py-7">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
-          {/* Left Column (50%): Calculator & Medical Option Modules */}
+          {/* Left Column (50%): Calculator & Medical Option Modules on Left */}
           <section className="w-full space-y-4">
             <DateDiffCalculator
               startDate={startDate}
@@ -179,18 +373,26 @@ export default function App() {
               isCurrentPairPinned={isCurrentPairPinned}
             />
 
-            {/* Option เสริมแยกออกมาต่างหาก พร้อมปุ่ม + เพิ่มได้หลายแบบ */}
-            <MedModules
+            {/* Med Cards in Left Column */}
+            <MedColumn
+              column="left"
+              modules={leftModules}
               startDateStr={startDate}
               totalDays={result?.totalDays ?? 0}
-              roundedWeeks={result?.roundedWeeks ?? 0}
               theme={theme}
               onPin={handlePin}
+              onMoveColumn={handleMoveColumn}
+              onMoveOrder={handleMoveOrder}
+              onDropItem={handleDropItem}
+              onAddModule={handleAddModule}
+              onDuplicateModule={handleDuplicateModule}
+              onUpdateModule={handleUpdateModule}
+              onRemoveModule={handleRemoveModule}
             />
           </section>
 
-          {/* Right Column (50%): Pinned Items List (คนละครึ่ง) */}
-          <section className="w-full">
+          {/* Right Column (50%): Pinned Items List & Medical Option Modules on Right */}
+          <section className="w-full space-y-4">
             <PinnedList
               pinnedItems={pinnedItems}
               onLoadItem={handleLoadPinned}
@@ -199,6 +401,23 @@ export default function App() {
               theme={theme}
               activeStartDate={startDate}
               activeEndDate={endDate}
+            />
+
+            {/* Med Cards in Right Column - Continues directly below Pinned List */}
+            <MedColumn
+              column="right"
+              modules={rightModules}
+              startDateStr={startDate}
+              totalDays={result?.totalDays ?? 0}
+              theme={theme}
+              onPin={handlePin}
+              onMoveColumn={handleMoveColumn}
+              onMoveOrder={handleMoveOrder}
+              onDropItem={handleDropItem}
+              onAddModule={handleAddModule}
+              onDuplicateModule={handleDuplicateModule}
+              onUpdateModule={handleUpdateModule}
+              onRemoveModule={handleRemoveModule}
             />
           </section>
         </div>
@@ -229,7 +448,7 @@ export default function App() {
         <div className="max-w-[1400px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>DateSpan · คำนวณวันและสัปดาห์ (ปัดเศษขึ้นเป็นจำนวนเต็ม)</span>
           <span className="opacity-70">
-            โหมดถนอมสายตาสำหรับผู้ใช้งานต่อเนื่องตลอดวัน
+            โหมดถนอมสายตาสำหรับผู้ใช้งานต่อเนื่องตลอดวัน · ลากหรือย้ายการ์ดต่อกันได้อย่างอิสระ
           </span>
         </div>
       </footer>
